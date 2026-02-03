@@ -8,7 +8,7 @@ This is an academic/research project bridging computational neuroscience and dee
 
 ## Repository Structure
 
-
+```
 Ronan-Project/
 ├── CLAUDE.md # This file - AI assistant guide
 ├── .gitignore # Excludes DATABASES directory
@@ -39,7 +39,7 @@ Ronan-Project/
 ├── KevSparseBump1works.jl # Sparse + bump map hybrid
 └── Tancik7.ipynb # Jupyter notebook variant
 
-
+```
 ## Development Environment
 
 - **Language**: Julia (v1.11+)
