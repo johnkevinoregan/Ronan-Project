@@ -1,8 +1,6 @@
 ### A Pluto.jl notebook ###
 # v0.20.21
 
-#> risky_file_source = "https://pluto.land/n/q3m3cqi7/notebookfile"
-
 using Markdown
 using InteractiveUtils
 
@@ -239,9 +237,9 @@ begin
 		D, S, B = size(x)
 		hd, nh = m.hd, m.nh
 		qkv = m.qkv(x)                           # (3D, S, B)
-		q = reshape(qkv[1:D, :, :],       hd, S, nh*B)
-		k = reshape(qkv[D+1:2D, :, :],    hd, S, nh*B)
-		v = reshape(qkv[2D+1:3D, :, :],   hd, S, nh*B)
+		q = reshape(permutedims(reshape(qkv[1:D,:,:],     hd,nh,S,B), (1,3,2,4)), hd,S,nh*B)
+		k = reshape(permutedims(reshape(qkv[D+1:2D,:,:], hd,nh,S,B), (1,3,2,4)), hd,S,nh*B)
+		v = reshape(permutedims(reshape(qkv[2D+1:3D,:,:],hd,nh,S,B), (1,3,2,4)), hd,S,nh*B)
 		q, k = apply_rope(q, k, rope)
 		sc = Float32(1/sqrt(hd))
 		
@@ -250,7 +248,7 @@ begin
 					permutedims(q, (2,1,3)), k) .* sc     # (S,S,nh*B)
 		w = softmax(scores; dims=2)               # over keys
 		out = NNlib.batched_mul(v, permutedims(w, (2,1,3)))  # (hd,S,nh*B)
-		m.o_proj(reshape(out, D, S, B))
+		m.o_proj(reshape(permutedims(reshape(out, hd,S,nh,B), (1,3,2,4)), D,S,B))
 	end
 end
 
@@ -449,6 +447,22 @@ end
 # ╔═╡ f6bfa719-022a-4aaa-b786-d9f020fa6e7d
 const IGNORE_LABEL = -100;
 
+# ╔═╡ 7b2c4eed-dc18-442e-a5d9-0355eef143a7
+md"""
+## Demo: Identity-copy task
+
+We train a tiny TRM to copy input tokens to output tokens.
+This verifies the full pipeline: model construction, forward pass
+with deep recursion, loss computation, and gradient-based training.
+"""
+
+# ╔═╡ dcd6c8f2-6b64-456d-a24e-5f7b19370a09
+function apply_dim1(f, A::Array{Float32,3})
+    a, b, c = size(A)
+    R = [Float32(f(@view A[:, j, k])) for j in 1:b, k in 1:c]
+    return R
+end
+
 # ╔═╡ f7bf8738-899e-4f98-b18f-6d54576b64e4
 """
 	trm_loss(model, x_ids, labels, y, z)
@@ -519,22 +533,6 @@ function train_step!(model, opt_state, x_ids, labels; N_sup=16)
         end
     end
     total_loss
-end
-
-# ╔═╡ 7b2c4eed-dc18-442e-a5d9-0355eef143a7
-md"""
-## Demo: Identity-copy task
-
-We train a tiny TRM to copy input tokens to output tokens.
-This verifies the full pipeline: model construction, forward pass
-with deep recursion, loss computation, and gradient-based training.
-"""
-
-# ╔═╡ dcd6c8f2-6b64-456d-a24e-5f7b19370a09
-function apply_dim1(f, A::Array{Float32,3})
-    a, b, c = size(A)
-    R = [Float32(f(@view A[:, j, k])) for j in 1:b, k in 1:c]
-    return R
 end
 
 # ╔═╡ cb7dd025-19c1-4d87-a94f-2d19601ceebd
@@ -613,31 +611,15 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
-
-[compat]
-Flux = "~0.16.8"
-PlutoUI = "~0.7.79"
-Zygote = "~0.7.10"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.4"
+julia_version = "1.12.2"
 manifest_format = "2.0"
-project_hash = "919cea4336664383ad3f35e158d9bc03b648cdd0"
-
-[[deps.ADTypes]]
-git-tree-sha1 = "f7304359109c768cf32dc5fa2d371565bb63b68a"
-uuid = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
-version = "1.21.0"
-weakdeps = ["ChainRulesCore", "ConstructionBase", "EnzymeCore"]
-
-    [deps.ADTypes.extensions]
-    ADTypesChainRulesCoreExt = "ChainRulesCore"
-    ADTypesConstructionBaseExt = "ConstructionBase"
-    ADTypesEnzymeCoreExt = "EnzymeCore"
+project_hash = "512a5d8cba90deae6b891b95be568aec2818ed24"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -896,14 +878,13 @@ uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 version = "1.7.0"
 
 [[deps.EnzymeCore]]
-git-tree-sha1 = "990991b8aa76d17693a98e3a915ac7aa49f08d1a"
+git-tree-sha1 = "820f06722a87d9544f42679182eb0850690f9b45"
 uuid = "f151be2c-9106-41f4-ab19-57ee4f262869"
-version = "0.8.18"
-weakdeps = ["Adapt", "ChainRulesCore"]
+version = "0.8.17"
+weakdeps = ["Adapt"]
 
     [deps.EnzymeCore.extensions]
     AdaptExt = "Adapt"
-    EnzymeCoreChainRulesCoreExt = "ChainRulesCore"
 
 [[deps.FLoops]]
 deps = ["BangBang", "Compat", "FLoopsBase", "InitialValues", "JuliaVariables", "MLStyle", "Serialization", "Setfield", "Transducers"]
@@ -923,20 +904,18 @@ version = "1.11.0"
 
 [[deps.FillArrays]]
 deps = ["LinearAlgebra"]
-git-tree-sha1 = "2f979084d1e13948a3352cf64a25df6bd3b4dca3"
+git-tree-sha1 = "5bfcd42851cf2f1b303f51525a54dc5e98d408a3"
 uuid = "1a297f60-69ca-5386-bcde-b61e274b549b"
-version = "1.16.0"
+version = "1.15.0"
 
     [deps.FillArrays.extensions]
     FillArraysPDMatsExt = "PDMats"
     FillArraysSparseArraysExt = "SparseArrays"
-    FillArraysStaticArraysExt = "StaticArrays"
     FillArraysStatisticsExt = "Statistics"
 
     [deps.FillArrays.weakdeps]
     PDMats = "90014a1f-27ba-587c-ab20-58faa44d9150"
     SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-    StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
     Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [[deps.FixedPointNumbers]]
@@ -946,28 +925,24 @@ uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
 version = "0.8.5"
 
 [[deps.Flux]]
-deps = ["ADTypes", "Adapt", "ChainRulesCore", "Compat", "EnzymeCore", "Functors", "LinearAlgebra", "MLCore", "MLDataDevices", "MLUtils", "MacroTools", "NNlib", "OneHotArrays", "Optimisers", "Preferences", "ProgressLogging", "Random", "Reexport", "Setfield", "SparseArrays", "SpecialFunctions", "Statistics", "Zygote"]
-git-tree-sha1 = "52f337c0326e80a555fe26d9136c87abca644eda"
+deps = ["Adapt", "ChainRulesCore", "Compat", "EnzymeCore", "Functors", "LinearAlgebra", "MLCore", "MLDataDevices", "MLUtils", "MacroTools", "NNlib", "OneHotArrays", "Optimisers", "Preferences", "ProgressLogging", "Random", "Reexport", "Setfield", "SparseArrays", "SpecialFunctions", "Statistics", "Zygote"]
+git-tree-sha1 = "efa66783e2ad06bfd4c148cb34648e24c99f7626"
 uuid = "587475ba-b771-5e3f-ad9e-33799f191a9c"
-version = "0.16.8"
+version = "0.16.7"
 
     [deps.Flux.extensions]
     FluxAMDGPUExt = "AMDGPU"
     FluxCUDAExt = "CUDA"
     FluxCUDAcuDNNExt = ["CUDA", "cuDNN"]
     FluxEnzymeExt = "Enzyme"
-    FluxFiniteDifferencesExt = "FiniteDifferences"
     FluxMPIExt = "MPI"
     FluxMPINCCLExt = ["CUDA", "MPI", "NCCL"]
-    FluxMooncakeExt = "Mooncake"
 
     [deps.Flux.weakdeps]
     AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
     CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
     Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
-    FiniteDifferences = "26cc04aa-876d-5657-8c51-4c34ba976000"
     MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
-    Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
     NCCL = "3fe64909-d7a1-4096-9b7d-7a0f12cf0f6b"
     cuDNN = "02a925ec-e4fe-4b08-9a7e-0d78e3d38ccd"
 
@@ -1011,9 +986,9 @@ version = "0.0.5"
 
 [[deps.HypertextLiteral]]
 deps = ["Tricks"]
-git-tree-sha1 = "d1a86724f81bcd184a38fd284ce183ec067d71a0"
+git-tree-sha1 = "7134810b1afce04bbc1045ca1985fbe81ce17653"
 uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
-version = "1.0.0"
+version = "0.9.5"
 
 [[deps.IOCapture]]
 deps = ["Logging", "Random"]
@@ -1153,30 +1128,30 @@ version = "1.0.0"
 
 [[deps.MLDataDevices]]
 deps = ["Adapt", "Functors", "Preferences", "Random", "SciMLPublic"]
-git-tree-sha1 = "117dd3d538d0ca82979ebcf15d9ad8bf0431c206"
+git-tree-sha1 = "d080e82120cc82114b4437780e03773d86d01c45"
 uuid = "7e8f7934-dd98-4c1a-8fe8-92b47a384d40"
-version = "1.17.2"
+version = "1.16.0"
 
     [deps.MLDataDevices.extensions]
-    AMDGPUExt = "AMDGPU"
-    CUDAExt = "CUDA"
-    ChainRulesCoreExt = "ChainRulesCore"
-    ChainRulesExt = "ChainRules"
-    ComponentArraysExt = "ComponentArrays"
-    FillArraysExt = "FillArrays"
-    GPUArraysSparseArraysExt = ["GPUArrays", "SparseArrays"]
-    MLUtilsExt = "MLUtils"
-    MetalExt = ["GPUArrays", "Metal"]
-    OneHotArraysExt = "OneHotArrays"
-    OpenCLExt = ["GPUArrays", "OpenCL"]
-    ReactantExt = "Reactant"
-    RecursiveArrayToolsExt = "RecursiveArrayTools"
-    ReverseDiffExt = "ReverseDiff"
-    SparseArraysExt = "SparseArrays"
-    TrackerExt = "Tracker"
-    ZygoteExt = "Zygote"
-    cuDNNExt = ["CUDA", "cuDNN"]
-    oneAPIExt = ["GPUArrays", "oneAPI"]
+    MLDataDevicesAMDGPUExt = "AMDGPU"
+    MLDataDevicesCUDAExt = "CUDA"
+    MLDataDevicesChainRulesCoreExt = "ChainRulesCore"
+    MLDataDevicesChainRulesExt = "ChainRules"
+    MLDataDevicesComponentArraysExt = "ComponentArrays"
+    MLDataDevicesFillArraysExt = "FillArrays"
+    MLDataDevicesGPUArraysExt = "GPUArrays"
+    MLDataDevicesMLUtilsExt = "MLUtils"
+    MLDataDevicesMetalExt = ["GPUArrays", "Metal"]
+    MLDataDevicesOneHotArraysExt = "OneHotArrays"
+    MLDataDevicesOpenCLExt = ["GPUArrays", "OpenCL"]
+    MLDataDevicesReactantExt = "Reactant"
+    MLDataDevicesRecursiveArrayToolsExt = "RecursiveArrayTools"
+    MLDataDevicesReverseDiffExt = "ReverseDiff"
+    MLDataDevicesSparseArraysExt = "SparseArrays"
+    MLDataDevicesTrackerExt = "Tracker"
+    MLDataDevicesZygoteExt = "Zygote"
+    MLDataDevicescuDNNExt = ["CUDA", "cuDNN"]
+    MLDataDevicesoneAPIExt = ["GPUArrays", "oneAPI"]
 
     [deps.MLDataDevices.weakdeps]
     AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
@@ -1238,13 +1213,13 @@ version = "1.11.0"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
-version = "2025.11.4"
+version = "2025.5.20"
 
 [[deps.NNlib]]
 deps = ["Adapt", "Atomix", "ChainRulesCore", "GPUArraysCore", "KernelAbstractions", "LinearAlgebra", "Random", "ScopedValues", "Statistics"]
-git-tree-sha1 = "6dc9ffc3a9931e6b988f913b49630d0fb986d0a8"
+git-tree-sha1 = "09701dc1df4281fa9212b269a69210dfa81ee52a"
 uuid = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
-version = "0.9.33"
+version = "0.9.32"
 
     [deps.NNlib.extensions]
     NNlibAMDGPUExt = "AMDGPU"
@@ -1333,7 +1308,7 @@ version = "1.8.1"
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "Random", "SHA", "TOML", "Tar", "UUIDs", "p7zip_jll"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
-version = "1.12.1"
+version = "1.12.0"
 
     [deps.Pkg.extensions]
     REPLExt = "REPL"
@@ -1343,9 +1318,9 @@ version = "1.12.1"
 
 [[deps.PlutoUI]]
 deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "Downloads", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
-git-tree-sha1 = "3ac7038a98ef6977d44adeadc73cc6f596c08109"
+git-tree-sha1 = "6ed167db158c7c1031abf3bd67f8e689c8bdf2b7"
 uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-version = "0.7.79"
+version = "0.7.77"
 
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
@@ -1508,10 +1483,10 @@ uuid = "82ae8749-77ed-4fe6-ae5f-f523153014b0"
 version = "1.8.0"
 
 [[deps.StatsBase]]
-deps = ["AliasTables", "DataAPI", "DataStructures", "IrrationalConstants", "LinearAlgebra", "LogExpFunctions", "Missings", "Printf", "Random", "SortingAlgorithms", "SparseArrays", "Statistics", "StatsAPI"]
-git-tree-sha1 = "aceda6f4e598d331548e04cc6b2124a6148138e3"
+deps = ["AliasTables", "DataAPI", "DataStructures", "LinearAlgebra", "LogExpFunctions", "Missings", "Printf", "Random", "SortingAlgorithms", "SparseArrays", "Statistics", "StatsAPI"]
+git-tree-sha1 = "be5733d4a2b03341bdcab91cea6caa7e31ced14b"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
-version = "0.34.10"
+version = "0.34.9"
 
 [[deps.StructArrays]]
 deps = ["ConstructionBase", "DataAPI", "Tables"]
