@@ -447,6 +447,9 @@ end
 # ╔═╡ f6bfa719-022a-4aaa-b786-d9f020fa6e7d
 const IGNORE_LABEL = -100;
 
+# ╔═╡ 28d10242-2d2c-45b0-88b3-ff58432d55bc
+
+
 # ╔═╡ 7b2c4eed-dc18-442e-a5d9-0355eef143a7
 md"""
 ## Demo: Identity-copy task
@@ -600,6 +603,51 @@ let
 
 	(losses, accuracy=acc)
 end
+
+# ╔═╡ 2992e437-b934-40de-9f73-baa7bca4cf18
+#KOR 7Feb2026 from Claude Code to inspect a mini model
+let                                                                  
+      V, S, B, D = 3, 5, 2, 8                                                                                                      
+      cfg = TRMConfig(                                                 
+          vocab_size=V, seq_len=S, hidden_size=D, expansion=4.0,
+          num_heads=2, H_cycles=2, L_cycles=2, L_layers=2,
+          halt_max_steps=4, rms_norm_eps=1e-5, rope_theta=10000.0,
+          use_mlp_t=false,
+      )
+      m = TRM(cfg)
+
+      Random.seed!(99)
+      x_ids = rand(1:V, S, B)
+      y, z = init_yz(m, S, B)
+
+      # The input to MHA on the first reasoning step
+      x_emb = m.inner.embed(x_ids) .* Float32(sqrt(D))
+      h = z .+ (y .+ x_emb)   # first injection: h = z + (y + x_emb)
+
+      # Inspect MHA in first TRMBlock
+      attn = m.inner.L_level.layers[1].attn
+      rope = m.inner.rope
+      hd, nh = attn.hd, attn.nh
+
+      qkv = attn.qkv(h)
+      q = reshape(permutedims(reshape(qkv[1:D,:,:],     hd,nh,S,B), (1,3,2,4)), hd,S,nh*B)
+      k = reshape(permutedims(reshape(qkv[D+1:2D,:,:], hd,nh,S,B), (1,3,2,4)), hd,S,nh*B)
+      v = reshape(permutedims(reshape(qkv[2D+1:3D,:,:],hd,nh,S,B), (1,3,2,4)), hd,S,nh*B)
+      q, k = apply_rope(q, k, rope)
+
+      sc = Float32(1/sqrt(hd))
+      scores = NNlib.batched_mul(permutedims(q, (2,1,3)), k) .* sc
+      w = softmax(scores; dims=2)
+      out = NNlib.batched_mul(v, permutedims(w, (2,1,3)))
+      final = attn.o_proj(reshape(permutedims(reshape(out, hd,S,nh,B), (1,3,2,4)), D,S,B))
+
+      @info "MHA input (h)" size=size(h) h
+      @info "Q" size=size(q) q
+      @info "K" size=size(k) k
+      @info "V" size=size(v) v
+      @info "Output" size=size(final) final
+  end
+
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1665,9 +1713,11 @@ version = "17.7.0+0"
 # ╠═f6bfa719-022a-4aaa-b786-d9f020fa6e7d
 # ╠═f7bf8738-899e-4f98-b18f-6d54576b64e4
 # ╠═703d3823-54a7-4218-9977-8888a891396c
+# ╠═28d10242-2d2c-45b0-88b3-ff58432d55bc
 # ╟─7b2c4eed-dc18-442e-a5d9-0355eef143a7
 # ╠═e5ccc157-574f-4f71-8288-05243441d804
 # ╠═dcd6c8f2-6b64-456d-a24e-5f7b19370a09
 # ╠═cb7dd025-19c1-4d87-a94f-2d19601ceebd
+# ╠═2992e437-b934-40de-9f73-baa7bca4cf18
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
