@@ -541,17 +541,17 @@ end
 # ╔═╡ cb7dd025-19c1-4d87-a94f-2d19601ceebd
 let
 	# ── Tiny config for the copy task ──
-	V = 12          # vocab size (tokens 1..12)
-	S = 16          # sequence length
-	B = 8           # batch size
-	D = 64          # hidden size (small for demo)
+	V = 3          # vocab size (tokens 1..12)
+	S = 5          # sequence length
+	B = 1           # batch size
+	D = 8          # hidden size (small for demo)
 
 	cfg = TRMConfig(
 		vocab_size   = V,
 		seq_len      = S,
 		hidden_size  = D,
 		expansion    = 4.0,
-		num_heads    = 4,
+		num_heads    = 2,
 		H_cycles     = 2,   # T  (fewer for speed)
 		L_cycles     = 2,   # n
 		L_layers     = 2,
@@ -566,11 +566,14 @@ let
 	nparams = length(Flux.destructure(model)[1])
 	@info "Model parameters" nparams
 
-	# ── Generate copy-task data ──
+	# ── Generate task data ──
 	Random.seed!(42)
 	make_batch() = begin
 		x = rand(1:V, S, B)
+	#copy sequence:
 		(x_ids=x, labels=copy(x))
+	#reverse sequence:
+	#	(x_ids=x, labels=reverse(x; dims=1)) 
 	end
 
 	# ── Train for a few epochs ──
@@ -605,12 +608,14 @@ let
 end
 
 # ╔═╡ 2992e437-b934-40de-9f73-baa7bca4cf18
+# ╠═╡ disabled = true
+#=╠═╡
 #KOR 7Feb2026 from Claude Code to inspect a mini model
 let                                                                  
       V, S, B, D = 3, 5, 2, 8                                                                                                      
       cfg = TRMConfig(                                                 
           vocab_size=V, seq_len=S, hidden_size=D, expansion=4.0,
-          num_heads=2, H_cycles=2, L_cycles=2, L_layers=2,
+          num_heads=1, H_cycles=2, L_cycles=2, L_layers=2,
           halt_max_steps=4, rms_norm_eps=1e-5, rope_theta=10000.0,
           use_mlp_t=false,
       )
@@ -648,6 +653,7 @@ let
       @info "Output" size=size(final) final
   end
 
+  ╠═╡ =#
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
