@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Ronan-Project** is a research codebase exploring positional embeddings and feature mapping strategies for neural networks, with emphasis on retinal coordinate encoding and image reconstruction tasks. The project investigates how different embedding schemes (Fourier features, sparse hash-based encodings, and spatial bump maps) perform on visual signal processing and image reconstruction.
+**Ronan-Project** is a research codebase exploring positional embeddings and feature mapping strategies for neural networks, with emphasis on retinal coordinate encoding and image reconstruction tasks. The project investigates how different embedding schemes (Fourier features, sparse hash-based encodings, and spatial bump maps) perform on visual signal processing and image reconstruction. It also includes work on the Tiny Recursive Model (TRM), a compact transformer architecture for reasoning tasks using deep supervision and adaptive computation.
 
 This is an academic/research project bridging computational neuroscience and deep learning.
 
@@ -31,13 +31,16 @@ Ronan-Project/
 │ ├── ClaudeHash1.jl, ClaudeHash2.jl # Optimized hash versions
 │ └── ClaudeSparse1-3.jl # Sparse hash encodings (MNIST)
 │
-└── TancikWithNonPeriodicEmbeddings/ # Fourier positional encoding experiments
-├── Tancik1-3.jl # Core Fourier embedding implementations
-├── tancik4-8*.jl # Variant implementations
-├── fourier_5d_temp.jl # Fourier feature exploration
-├── KevSparse3-4.jl # Sparse alternatives to Fourier
-├── KevSparseBump1works.jl # Sparse + bump map hybrid
-└── Tancik7.ipynb # Jupyter notebook variant
+├── TancikWithNonPeriodicEmbeddings/ # Fourier positional encoding experiments
+│ ├── Tancik1-3.jl # Core Fourier embedding implementations
+│ ├── tancik4-8*.jl # Variant implementations
+│ ├── fourier_5d_temp.jl # Fourier feature exploration
+│ ├── KevSparse3-4.jl # Sparse alternatives to Fourier
+│ ├── KevSparseBump1works.jl # Sparse + bump map hybrid
+│ └── Tancik7.ipynb # Jupyter notebook variant
+│
+└── TRM/                              # Tiny Recursive Model
+    └── TRM.jl                        # Full TRM implementation (Pluto notebook)
 
 ```
 ## Development Environment
@@ -81,6 +84,35 @@ color_index(x, y)                       # 4-color checkerboard position tags
 Spatial Bump Maps:
 
 SpatialBumpMapUnique(M, k, width, height, R)  # Gaussian bump grid
+
+TRM/
+Implements the Tiny Recursive Model from "Less is More: Recursive Reasoning with Tiny Networks" (Alexia Jolicoeur-Martineau, Samsung SAIL Montréal). A single Pluto notebook with a complete transformer-based architecture for small-dataset reasoning tasks (Sudoku, mazes, pattern completion).
+
+Architecture Components:
+- RMSNorm: Simplified layer normalization
+- SwiGLU FFN: Gated activation MLP (4x expansion factor)
+- Rotary Position Embeddings (RoPE): Relative position encoding via rotation matrices
+- Multi-Head Attention: Bidirectional, 4 heads, no bias
+- TRMBlock: Attention + SwiGLU with post-norm residual connections (2 blocks default)
+- ReasoningModule: Stacked TRMBlocks with input injection
+- TRMInner: Full network (embedding, LM head, Q-head for ACT halting, L_level layer)
+- TRM outer wrapper: Deep supervision + Adaptive Computational Time (ACT)
+
+Key Concepts:
+- Single 2-layer network recursively refines two state variables: y (current answer) and z (latent reasoning)
+- Deep supervision: T-1 loops without gradients, then 1 with gradients
+- ACT early stopping via Q-head that predicts when the answer is ready
+- "Less is more" principle: 2-layer networks outperform 4-layer on small datasets
+- Loss: cross-entropy + 0.5 × binary halt loss, with IGNORE_LABEL masking
+
+Demo Hyperparameters:
+vocab_size = 12
+seq_len = 16
+batch_size = 8
+hidden_size = 64
+num_blocks = 2          # TRMBlocks
+num_heads = 4           # Attention heads
+supervision_steps = 16  # Deep supervision iterations
 
 TancikWithNonPeriodicEmbeddings/
 Primary experimental focus - Fourier positional encoding for image reconstruction:
