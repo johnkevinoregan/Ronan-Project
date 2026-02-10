@@ -655,6 +655,11 @@ let
 
   ╠═╡ =#
 
+# ╔═╡ b9a4f0c7-09e2-489c-8297-3c2ae4e58d53
+md"""
+This is a test
+"""
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
@@ -671,7 +676,7 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.2"
+julia_version = "1.12.4"
 manifest_format = "2.0"
 project_hash = "512a5d8cba90deae6b891b95be568aec2818ed24"
 
@@ -1267,7 +1272,7 @@ version = "1.11.0"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
-version = "2025.5.20"
+version = "2025.11.4"
 
 [[deps.NNlib]]
 deps = ["Adapt", "Atomix", "ChainRulesCore", "GPUArraysCore", "KernelAbstractions", "LinearAlgebra", "Random", "ScopedValues", "Statistics"]
@@ -1362,7 +1367,7 @@ version = "1.8.1"
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "Random", "SHA", "TOML", "Tar", "UUIDs", "p7zip_jll"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
-version = "1.12.0"
+version = "1.12.1"
 
     [deps.Pkg.extensions]
     REPLExt = "REPL"
@@ -1725,5 +1730,6 @@ version = "17.7.0+0"
 # ╠═dcd6c8f2-6b64-456d-a24e-5f7b19370a09
 # ╠═cb7dd025-19c1-4d87-a94f-2d19601ceebd
 # ╠═2992e437-b934-40de-9f73-baa7bca4cf18
+# ╠═b9a4f0c7-09e2-489c-8297-3c2ae4e58d53
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
