@@ -23,6 +23,32 @@ end
 # ╔═╡ e5ccc157-574f-4f71-8288-05243441d804
 using Zygote
 
+# ╔═╡ dc80c419-25f0-49b1-9ae8-888b6e5117a2
+HTML("""
+<!-- the wrapper span -->
+<div>
+	<button id="myrestart" href="#">Restart</button>
+	
+	<script>
+		const div = currentScript.parentElement
+		const button = div.querySelector("button#myrestart")
+		const cell= div.closest('pluto-cell')
+		console.log(button);
+		button.onclick = function() { restart_nb() };
+		function restart_nb() {
+			console.log("Restarting Notebook");
+		        cell._internal_pluto_actions.send(                    
+		            "restart_process",
+                            {},
+                            {
+                                notebook_id: editor_state.notebook.notebook_id,
+                            }
+                        )
+		};
+	</script>
+</div>
+""")
+
 # ╔═╡ e36102b1-9ef1-4c7a-a61a-7cd66a757ec1
 md"""
 # Understanding the TRM Architecture
@@ -447,9 +473,6 @@ end
 # ╔═╡ f6bfa719-022a-4aaa-b786-d9f020fa6e7d
 const IGNORE_LABEL = -100;
 
-# ╔═╡ 28d10242-2d2c-45b0-88b3-ff58432d55bc
-
-
 # ╔═╡ 7b2c4eed-dc18-442e-a5d9-0355eef143a7
 md"""
 ## Demo: Identity-copy task
@@ -541,10 +564,10 @@ end
 # ╔═╡ cb7dd025-19c1-4d87-a94f-2d19601ceebd
 let
 	# ── Tiny config for the copy task ──
-	V = 3          # vocab size (tokens 1..12)
-	S = 5          # sequence length
-	B = 1           # batch size
-	D = 8          # hidden size (small for demo)
+	V = 12          # vocab size (tokens 1..12)
+	S = 16          # sequence length
+	B = 8           # batch size
+	D = 64          # hidden size (small for demo)
 
 	cfg = TRMConfig(
 		vocab_size   = V,
@@ -580,7 +603,7 @@ let
 	opt_state = Flux.setup(Adam(1f-3), model)
 	losses = Float32[]
 
-	for epoch in 1:20
+	for epoch in 1:50
 		batch = make_batch()
 		l = train_step!(model, opt_state, batch.x_ids, batch.labels; 
 						N_sup=cfg.halt_max_steps)
@@ -623,7 +646,7 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.4"
+julia_version = "1.12.5"
 manifest_format = "2.0"
 project_hash = "512a5d8cba90deae6b891b95be568aec2818ed24"
 
@@ -1646,6 +1669,7 @@ version = "17.7.0+0"
 """
 
 # ╔═╡ Cell order:
+# ╟─dc80c419-25f0-49b1-9ae8-888b6e5117a2
 # ╟─5efe92c1-ba22-4b3b-a06f-c038b6ab9dde
 # ╟─e36102b1-9ef1-4c7a-a61a-7cd66a757ec1
 # ╟─1c2f8368-fc86-11f0-9ea7-c5cd0c983c87
@@ -1671,7 +1695,6 @@ version = "17.7.0+0"
 # ╠═f6bfa719-022a-4aaa-b786-d9f020fa6e7d
 # ╠═f7bf8738-899e-4f98-b18f-6d54576b64e4
 # ╠═703d3823-54a7-4218-9977-8888a891396c
-# ╠═28d10242-2d2c-45b0-88b3-ff58432d55bc
 # ╟─7b2c4eed-dc18-442e-a5d9-0355eef143a7
 # ╠═e5ccc157-574f-4f71-8288-05243441d804
 # ╠═dcd6c8f2-6b64-456d-a24e-5f7b19370a09

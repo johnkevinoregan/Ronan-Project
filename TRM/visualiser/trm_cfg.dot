@@ -1,0 +1,55 @@
+digraph TRM_Flow {
+  node [shape=box, style=filled, fillcolor="#f0f0f0", fontname="Helvetica"];
+  edge [fontname="Helvetica"];
+  compound=true;
+  subgraph cluster_1 {
+    label = "forward_inner";
+    style = rounded;
+    color = lightgrey;
+    node1_1 [label="Entry", shape=oval, fillcolor="lightgreen"];
+    node1_2 [label="Exit", shape=oval, fillcolor="lightpink"];
+    node1_3 [label="Assign: x_emb = .*(...)", shape=box, fillcolor="#f9f9f9"];
+    node1_4 [label="Loop Start: _ = 1:m.cfg.L_cycles", shape=box, fillcolor="#f9f9f9"];
+    node1_5 [label="Loop Body", shape=box, fillcolor="#f9f9f9"];
+    node1_6 [label="Assign: z = m.L_level(...)", shape=box, fillcolor="#f9f9f9"];
+    node1_7 [label="After Loop", shape=box, fillcolor="#f9f9f9"];
+    node1_8 [label="Assign: y = m.L_level(...)", shape=box, fillcolor="#f9f9f9"];
+    node1_9 [label="Assign: logits = m.lm_head(...)", shape=box, fillcolor="#f9f9f9"];
+    node1_10 [label="Assign: q_logits = m.q_head(...)", shape=box, fillcolor="#f9f9f9"];
+    node1_11 [label="Stmt: tuple", shape=box, fillcolor="#f9f9f9"];
+    node1_1 -> node1_3;
+    node1_3 -> node1_4;
+    node1_4 -> node1_5;
+    node1_5 -> node1_6;
+    node1_6 -> node1_4;
+    node1_4 -> node1_7;
+    node1_7 -> node1_8;
+    node1_8 -> node1_9;
+    node1_9 -> node1_10;
+    node1_10 -> node1_11;
+    node1_11 -> node1_2;
+  }
+  subgraph cluster_2 {
+    label = "deep_recursion";
+    style = rounded;
+    color = lightgrey;
+    node2_1 [label="Entry", shape=oval, fillcolor="lightgreen"];
+    node2_2 [label="Exit", shape=oval, fillcolor="lightpink"];
+    node2_3 [label="Assign: T", shape=box, fillcolor="#f9f9f9"];
+    node2_4 [label="Loop Start: _ = 1:T - 1", shape=box, fillcolor="#f9f9f9"];
+    node2_5 [label="Loop Body", shape=box, fillcolor="#f9f9f9"];
+    node2_6 [label="Assign: (y, z)", shape=box, fillcolor="#f9f9f9"];
+    node2_7 [label="After Loop", shape=box, fillcolor="#f9f9f9"];
+    node2_8 [label="Assign: (y, z, logits, q_logits) = forward_inner(...)", shape=box, fillcolor="#f9f9f9"];
+    node2_9 [label="Stmt: tuple", shape=box, fillcolor="#f9f9f9"];
+    node2_1 -> node2_3;
+    node2_3 -> node2_4;
+    node2_4 -> node2_5;
+    node2_5 -> node2_6;
+    node2_6 -> node2_4;
+    node2_4 -> node2_7;
+    node2_7 -> node2_8;
+    node2_8 -> node2_9;
+    node2_9 -> node2_2;
+  }
+}
