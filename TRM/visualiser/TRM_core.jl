@@ -18,9 +18,9 @@ export TRMConfig, SwiGLU, RoPE, MHA, TRMBlock, ReasoningModule, TRMInner, TRM,
 Base.@kwdef struct TRMConfig
 	vocab_size::Int
 	seq_len::Int
-	hidden_size::Int   = 128
+	hidden_size::Int   = 16		#KOR was 128
 	expansion::Float64 = 4.0
-	num_heads::Int     = 4
+	num_heads::Int     = 2		#KOR was 4
 	H_cycles::Int      = 3    # T  (outer deep-recursion loops)
 	L_cycles::Int      = 6    # n  (inner latent-reasoning steps per loop)
 	L_layers::Int      = 2    # transformer layers per block
