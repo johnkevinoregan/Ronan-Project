@@ -2,7 +2,9 @@ module TRMProbe
 
 using ..TRMMock  # Assuming TRMMock is available in the parent or same environment
 using Flux
+using NNlib
 using Statistics
+
 
 export ActivationLog, run_with_probe
 

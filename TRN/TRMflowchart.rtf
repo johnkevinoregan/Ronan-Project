@@ -1,0 +1,154 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2709
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww13440\viewh10200\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs28 \cf0 train_step!(model, opt_state, x_ids, labels; N_sup=4)\
+\uc0\u9474 \
+\uc0\u9500 \u9472 > init_yz(model, S, B)  \
+\uc0\u9474    \u9492 \u9472 > y\u8320  = repeat(y_init, 1, 16, 8)  [STATE: y initialized]\
+\uc0\u9474    \u9492 \u9472 > z\u8320  = repeat(z_init, 1, 16, 8)  [STATE: z initialized]\
+\uc0\u9474 \
+\uc0\u9492 \u9472 > for step in 1:4  [4 supervision steps]\
+    \uc0\u9474    Current states: y_step, z_step\
+    \uc0\u9474 \
+    \uc0\u9500 \u9472 > Flux.withgradient(model) do m  [GRADIENT TRACKING STARTS]\
+    \uc0\u9474    \u9474 \
+    \uc0\u9474    \u9492 \u9472 > trm_loss(m, x_ids, labels, y_step, z_step)\
+    \uc0\u9474        \u9474 \
+    \uc0\u9474        \u9492 \u9472 > deep_recursion(model, x_ids, y_step, z_step)\
+    \uc0\u9474            \u9474 \
+    \uc0\u9474            \u9500 \u9472 > for _ in 1:(H_cycles-1)  [H_cycle 1: NO GRAD]\
+    \uc0\u9474            \u9474    \u9474 \
+    \uc0\u9474            \u9474    \u9492 \u9472 > Zygote.ignore_derivatives() do\
+    \uc0\u9474            \u9474        \u9474 \
+    \uc0\u9474            \u9474        \u9492 \u9472 > forward_inner(model.inner, x_ids, y_step, z_step)\
+    \uc0\u9474            \u9474            \u9474 \
+    \uc0\u9474            \u9474            \u9500 \u9472 > embed(x_ids) * \u8730 D  \u8594  x_emb\
+    \uc0\u9474            \u9474            \u9474 \
+    \uc0\u9474            \u9474            \u9500 \u9472 > for i in 1:L_cycles  [2 iterations]\
+    \uc0\u9474            \u9474            \u9474    \u9474 \
+    \uc0\u9474            \u9474            \u9474    \u9492 \u9472 > z = L_level(z, y + x_emb, rope)\
+    \uc0\u9474            \u9474            \u9474        \u9474    [STATE: z updated, no grad]\
+    \uc0\u9474            \u9474            \u9474        \u9474    z_step \u8594  z_temp1 \u8594  z_temp2\
+    \uc0\u9474            \u9474            \u9474        \u9474 \
+    \uc0\u9474            \u9474            \u9474        \u9500 \u9472 > h = z + (y + x_emb)  [injection]\
+    \uc0\u9474            \u9474            \u9474        \u9474 \
+    \uc0\u9474            \u9474            \u9474        \u9492 \u9472 > for layer in [Block\u8321 , Block\u8322 ]\
+    \uc0\u9474            \u9474            \u9474            \u9474 \
+    \uc0\u9474            \u9474            \u9474            \u9492 \u9472 > h = TRMBlock(h, rope)\
+    \uc0\u9474            \u9474            \u9474                \u9474    [WEIGHTS: read only, no updates]\
+    \uc0\u9474            \u9474            \u9474                \u9474 \
+    \uc0\u9474            \u9474            \u9474                \u9500 \u9472 > attn_out = MHA(h, rope)\
+    \uc0\u9474            \u9474            \u9474                \u9474    \u9474    [WEIGHTS: qkv, o_proj used]\
+    \uc0\u9474            \u9474            \u9474                \u9474    \u9500 \u9472 > qkv(h)  [use Dense weights]\
+    \uc0\u9474            \u9474            \u9474                \u9474    \u9500 \u9472 > apply_rope(Q, K)\
+    \uc0\u9474            \u9474            \u9474                \u9474    \u9500 \u9472 > attention scores & softmax\
+    \uc0\u9474            \u9474            \u9474                \u9474    \u9492 \u9472 > o_proj(\'b7)  [use Dense weights]\
+    \uc0\u9474            \u9474            \u9474                \u9474 \
+    \uc0\u9474            \u9474            \u9474                \u9500 \u9472 > h = rms_norm(h + attn_out)\
+    \uc0\u9474            \u9474            \u9474                \u9474 \
+    \uc0\u9474            \u9474            \u9474                \u9500 \u9472 > mlp_out = SwiGLU(h)\
+    \uc0\u9474            \u9474            \u9474                \u9474    \u9474    [WEIGHTS: gate_up, down used]\
+    \uc0\u9474            \u9474            \u9474                \u9474    \u9500 \u9472 > gate_up(h)  [use Dense weights]\
+    \uc0\u9474            \u9474            \u9474                \u9474    \u9500 \u9472 > sigmoid(gate) * gate * up\
+    \uc0\u9474            \u9474            \u9474                \u9474    \u9492 \u9472 > down(\'b7)  [use Dense weights]\
+    \uc0\u9474            \u9474            \u9474                \u9474 \
+    \uc0\u9474            \u9474            \u9474                \u9492 \u9472 > h = rms_norm(h + mlp_out)\
+    \uc0\u9474            \u9474            \u9474 \
+    \uc0\u9474            \u9474            \u9500 \u9472 > y = L_level(y, z, rope)\
+    \uc0\u9474            \u9474            \u9474    \u9474    [STATE: y updated, no grad]\
+    \uc0\u9474            \u9474            \u9474    \u9474    y_step \u8594  y_temp1\
+    \uc0\u9474            \u9474            \u9474    \u9474 \
+    \uc0\u9474            \u9474            \u9474    \u9492 \u9472 > [same TRMBlock structure, weights read only]\
+    \uc0\u9474            \u9474            \u9474 \
+    \uc0\u9474            \u9474            \u9500 \u9472 > logits = lm_head(y)\
+    \uc0\u9474            \u9474            \u9474    [WEIGHTS: lm_head Dense used, no grad]\
+    \uc0\u9474            \u9474            \u9474 \
+    \uc0\u9474            \u9474            \u9492 \u9472 > q_logits = q_head(y[:,1,:])\
+    \uc0\u9474            \u9474                [WEIGHTS: q_head Dense used, no grad]\
+    \uc0\u9474            \u9474 \
+    \uc0\u9474            \u9492 \u9472 > final H_cycle [H_cycle 2: WITH GRADIENTS \u10003 ]\
+    \uc0\u9474                \u9474 \
+    \uc0\u9474                \u9492 \u9472 > forward_inner(model.inner, x_ids, y_temp1, z_temp2)\
+    \uc0\u9474                    \u9474 \
+    \uc0\u9474                    \u9500 \u9472 > embed(x_ids) * \u8730 D  \u8594  x_emb\
+    \uc0\u9474                    \u9474    [WEIGHTS: embedding matrix used, GRAD \u10003 ]\
+    \uc0\u9474                    \u9474 \
+    \uc0\u9474                    \u9500 \u9472 > for i in 1:L_cycles  [2 iterations]\
+    \uc0\u9474                    \u9474    \u9474 \
+    \uc0\u9474                    \u9474    \u9492 \u9472 > z = L_level(z, y + x_emb, rope)\
+    \uc0\u9474                    \u9474        \u9474    [STATE: z updated WITH grad]\
+    \uc0\u9474                    \u9474        \u9474    z_temp2 \u8594  z_temp3 \u8594  z_temp4\
+    \uc0\u9474                    \u9474        \u9474 \
+    \uc0\u9474                    \u9474        \u9492 \u9472 > for layer in [Block\u8321 , Block\u8322 ]\
+    \uc0\u9474                    \u9474            \u9474 \
+    \uc0\u9474                    \u9474            \u9492 \u9472 > h = TRMBlock(h, rope)\
+    \uc0\u9474                    \u9474                \u9474    [WEIGHTS: MHA & SwiGLU, GRAD \u10003 ]\
+    \uc0\u9474                    \u9474                \u9500 \u9472 > MHA weights get gradients\
+    \uc0\u9474                    \u9474                \u9492 \u9472 > SwiGLU weights get gradients\
+    \uc0\u9474                    \u9474 \
+    \uc0\u9474                    \u9500 \u9472 > y = L_level(y, z, rope)\
+    \uc0\u9474                    \u9474    \u9474    [STATE: y updated WITH grad]\
+    \uc0\u9474                    \u9474    \u9474    y_temp1 \u8594  y_temp2\
+    \uc0\u9474                    \u9474    \u9474 \
+    \uc0\u9474                    \u9474    \u9492 \u9472 > [TRMBlock, WEIGHTS get GRAD \u10003 ]\
+    \uc0\u9474                    \u9474 \
+    \uc0\u9474                    \u9500 \u9472 > logits = lm_head(y)\
+    \uc0\u9474                    \u9474    \u9474    [WEIGHTS: lm_head Dense, GRAD \u10003 ]\
+    \uc0\u9474                    \u9474    \u9474    Used for loss computation\
+    \uc0\u9474                    \u9474 \
+    \uc0\u9474                    \u9492 \u9472 > q_logits = q_head(y[:,1,:])\
+    \uc0\u9474                        \u9474    [WEIGHTS: q_head Dense, GRAD \u10003 ]\
+    \uc0\u9474                        \u9474    Used for halt loss\
+    \uc0\u9474                        \u9474 \
+    \uc0\u9474                        \u9492 \u9472 > return dropgrad(y_temp2), dropgrad(z_temp4),\
+    \uc0\u9474                                   logits, q_logits\
+    \uc0\u9474 \
+    \uc0\u9500 \u9472 > [Compute losses from logits]\
+    \uc0\u9474    \u9500 \u9472 > lm_loss = crossentropy(logits, labels)\
+    \uc0\u9474    \u9500 \u9472 > q_halt_loss = binary_crossentropy(q_logits, seq_correct)\
+    \uc0\u9474    \u9492 \u9472 > loss = lm_loss + 0.5 * q_halt_loss\
+    \uc0\u9474        [GRADIENT: \u8706 loss/\u8706 (all weights) computed]\
+    \uc0\u9474 \
+    \uc0\u9500 \u9472 > Flux.update!(opt_state, model, grads[1])\
+    \uc0\u9474    \u9474    [WEIGHTS UPDATED: gradient descent step]\
+    \uc0\u9474    \u9474 \
+    \uc0\u9474    \u9500 \u9472 > embedding matrix += -lr * \u8706 loss/\u8706 embed\
+    \uc0\u9474    \u9500 \u9472 > lm_head Dense    += -lr * \u8706 loss/\u8706 lm_head\
+    \uc0\u9474    \u9500 \u9472 > q_head Dense     += -lr * \u8706 loss/\u8706 q_head\
+    \uc0\u9474    \u9492 \u9472 > TRMBlock weights += -lr * \u8706 loss/\u8706 (MHA, SwiGLU)\
+    \uc0\u9474        \u9500 \u9472 > Block\u8321 .attn.qkv updated\
+    \uc0\u9474        \u9500 \u9472 > Block\u8321 .attn.o_proj updated\
+    \uc0\u9474        \u9500 \u9472 > Block\u8321 .mlp.gate_up updated\
+    \uc0\u9474        \u9500 \u9472 > Block\u8321 .mlp.down updated\
+    \uc0\u9474        \u9500 \u9472 > Block\u8322 .attn.qkv updated\
+    \uc0\u9474        \u9500 \u9472 > Block\u8322 .attn.o_proj updated\
+    \uc0\u9474        \u9500 \u9472 > Block\u8322 .mlp.gate_up updated\
+    \uc0\u9474        \u9492 \u9472 > Block\u8322 .mlp.down updated\
+    \uc0\u9474 \
+    \uc0\u9500 \u9472 > deep_recursion(model, x_ids, y_temp2, z_temp4)  [NO GRAD]\
+    \uc0\u9474    \u9474    [Run forward with UPDATED WEIGHTS to get new states]\
+    \uc0\u9474    \u9474 \
+    \uc0\u9474    \u9492 \u9472 > for H_cycle 1 (no grad):\
+    \uc0\u9474    \u9474    \u9492 \u9472 > forward_inner: z_temp4 \u8594  z_new1 \u8594  z_new2\
+    \uc0\u9474    \u9474                       y_temp2 \u8594  y_new1\
+    \uc0\u9474    \u9474        [STATE: updated using NEW weights]\
+    \uc0\u9474    \u9474 \
+    \uc0\u9474    \u9492 \u9472 > for H_cycle 2 (no grad):\
+    \uc0\u9474        \u9492 \u9472 > forward_inner: z_new2 \u8594  z_new3 \u8594  z_new4\
+    \uc0\u9474                           y_new1 \u8594  y_new2\
+    \uc0\u9474            [STATE: further updated]\
+    \uc0\u9474 \
+    \uc0\u9500 \u9472 > y_step \u8592  y_new2  [STATE: carry forward to next supervision step]\
+    \uc0\u9500 \u9472 > z_step \u8592  z_new4  [STATE: carry forward to next supervision step]\
+    \uc0\u9474 \
+    \uc0\u9500 \u9472 > total_loss += loss_val\
+    \uc0\u9474 \
+    \uc0\u9492 \u9472 > if all(q_logits[1,:] .> 0)  [early halt check]\
+        \uc0\u9492 \u9472 > break  [exit supervision loop early]\
+\
+return total_loss  [sum of losses from all 4 supervision steps]\
+}
