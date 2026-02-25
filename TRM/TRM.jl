@@ -473,22 +473,6 @@ end
 # ╔═╡ f6bfa719-022a-4aaa-b786-d9f020fa6e7d
 const IGNORE_LABEL = -100;
 
-# ╔═╡ 7b2c4eed-dc18-442e-a5d9-0355eef143a7
-md"""
-## Demo: Identity-copy task
-
-We train a tiny TRM to copy input tokens to output tokens.
-This verifies the full pipeline: model construction, forward pass
-with deep recursion, loss computation, and gradient-based training.
-"""
-
-# ╔═╡ dcd6c8f2-6b64-456d-a24e-5f7b19370a09
-function apply_dim1(f, A::Array{Float32,3})
-    a, b, c = size(A)
-    R = [Float32(f(@view A[:, j, k])) for j in 1:b, k in 1:c]
-    return R
-end
-
 # ╔═╡ f7bf8738-899e-4f98-b18f-6d54576b64e4
 """
 	trm_loss(model, x_ids, labels, y, z)
@@ -559,6 +543,22 @@ function train_step!(model, opt_state, x_ids, labels; N_sup=16)
         end
     end
     total_loss
+end
+
+# ╔═╡ 7b2c4eed-dc18-442e-a5d9-0355eef143a7
+md"""
+## Demo: Identity-copy task
+
+We train a tiny TRM to copy input tokens to output tokens.
+This verifies the full pipeline: model construction, forward pass
+with deep recursion, loss computation, and gradient-based training.
+"""
+
+# ╔═╡ dcd6c8f2-6b64-456d-a24e-5f7b19370a09
+function apply_dim1(f, A::Array{Float32,3})
+    a, b, c = size(A)
+    R = [Float32(f(@view A[:, j, k])) for j in 1:b, k in 1:c]
+    return R
 end
 
 # ╔═╡ cb7dd025-19c1-4d87-a94f-2d19601ceebd
